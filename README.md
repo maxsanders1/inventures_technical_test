@@ -33,3 +33,6 @@ Luego:
 npm start
 ```
 Con esto, se debe tener el proyecto ejecutando en la ip "localhost:3000" o "127.0.0.1:3000"
+
+##Pagina en vivo desplegada en un servicio de nube (AWS EC2):
+http://3.88.100.6:3000/
