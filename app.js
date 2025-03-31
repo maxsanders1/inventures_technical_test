@@ -67,27 +67,29 @@ app.get('/', (req, res) => {
 *********************************************************************************/
 
 app.post('/URL_action', function (req, res) {
-    // parameters
-    var url = req.body.URL_original
-    // Generate random string for the short URL
-    var short_url = randomstring.generate({
-      length: 12,
-      charset: 'alphabetic'
-    });
-    // Timestamp for insert
-    const date = moment.tz("America/Santiago").format('YYYY-MM-DD');
-    const time = moment.tz("America/Santiago").format('HH:mm:ss');
-    // Insert into db
-    client.query("INSERT INTO urls (url, short_url, clicks, fecha, hora) VALUES ('"+url+"', '"+short_url+"', "+0+" , '"+date+"', '"+time+"')", (err, result) => {
-      // Error condition
-      if (err) {
-        console.error('Error executing query', err);
-      }
-      // Redirect condition
-      else {
-        res.redirect("/")
-      }
-    });
+  //Parameters
+  var url = req.body.URL_original
+  var URL_personalizada = req.body.URL_personalizada
+  // Random url
+  var short_url = randomstring.generate({
+    length: 12,
+    charset: 'alphabetic'
+  });
+  // Condition for personalized url
+  if (URL_personalizada != '') {
+    short_url = URL_personalizada;
+  }
+  // Timestamp
+  const date = moment.tz("America/Santiago").format('YYYY-MM-DD');
+  const time = moment.tz("America/Santiago").format('HH:mm:ss');
+  // Query for insert new short url
+  client.query("INSERT INTO urls (url, short_url, clicks, fecha, hora) VALUES ('"+url+"', '"+short_url+"', "+0+" , '"+date+"', '"+time+"')", (err, result) => {
+    if (err) {
+      console.error('Error executing query', err);
+    } else {
+      res.redirect("/")
+    }
+  });
 })
 
 /*********************************************************************************
@@ -95,23 +97,22 @@ app.post('/URL_action', function (req, res) {
  * In this case, to any short url that it's redirect
  * 
  * Input ---> Short Url 
- * Output ---> Redirect to the original URL
+ * Output ---> Redirect to the original URL or expired URL
 *********************************************************************************/
 
 app.get('/:url_acortada' , (req, res) => {
   // Parameters
   const short_url = req.params.url_acortada
-
-  // Condition for when the short_url parameter is any other than null
+	// Condition for null 
   if (short_url != "favicon.ico" && short_url != null) {
-    // Update clicks in the db
+		// Update clicks
     client.query("UPDATE urls SET clicks = clicks + 1 WHERE short_url = '"+short_url+"' ", (err, result) => {
       if (err) {
         console.error('Error executing query', err);
       } else {
-        //Search of the information of the URL shortened
+				// Get URL data
         client.query("SELECT * FROM urls WHERE short_url = '"+short_url+"';", (err, result2) => {
-          // Constants and parses for calculate days
+					//parameters for timestamp
           const dia_db = result2.rows[0].fecha
           const hora_db = result2.rows[0].hora
           const f = new Date(dia_db);
@@ -121,18 +122,18 @@ app.get('/:url_acortada' , (req, res) => {
           const aux_db = year + "-" + month + "-" + day;
           let fecha_db = aux_db + " " + hora_db;
           let fechaActual = moment();
+					// Comparative for date diff 
           let diferenciaHoras = fechaActual.diff(fecha_db, 'hours');
-          // Condition when 3 days passed
+					// condition for date diff in hours
           if (diferenciaHoras > 72) {
             let msg = "link caducado: "+short_url
             return res.send(msg)
           }
-          // Error condition
+
           if (err) {
             console.error('Error executing query', err);
-          }
-          // Redirect condition
-          else {
+          } else {
+						// Redirect to original URL
             const u = result2.rows[0]
             console.log(u.url );
             res.redirect(""+u.url+"")
@@ -143,6 +144,7 @@ app.get('/:url_acortada' , (req, res) => {
   }
   else{
     console.log("Not Updated");
+    
   }
   
 })
